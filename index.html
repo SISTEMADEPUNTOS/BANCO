@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Banco de puntos</title>
+  <style>
+    body { font-family: sans-serif; max-width: 420px; margin: 1rem auto; padding: 0 1rem; }
+    button, input { font-size: 1.1rem; padding: .7rem; margin: .3rem 0; width: 100%; box-sizing: border-box; }
+    .fila { display: flex; gap: .5rem; }
+    #saldo { font-size: 1.5rem; font-weight: bold; min-height: 2rem; }
+  </style>
+</head>
+<body>
+  <input id="clave" type="password" placeholder="Clave">
+  <button id="leer">Leer tarjeta</button>
+  <p id="saldo"></p>
+  <input id="cantidad" type="number" min="1" placeholder="Cantidad">
+  <input id="motivo" type="text" placeholder="Motivo (opcional)">
+  <div class="fila">
+    <button id="sumar">+ Sumar</button>
+    <button id="restar">− Restar</button>
+  </div>
+  <p id="msg"></p>
+
+  <script>
+    const API = https://script.google.com/a/macros/g.educaand.es/s/AKfycbxt2OBJcAu7NitAuN-e68XVD70O4NWGUvLM9aM3qd3BxvpqvENZNRoSqhWf691UXi9O0w/exec;
+    const $ = (id) => document.getElementById(id);
+    let idActual = null;
+
+    try { $('clave').value = localStorage.getItem('clave') || ''; } catch (e) {}
+
+    async function llamar(datos) {
+      const clave = $('clave').value;
+      try { localStorage.setItem('clave', clave); } catch (e) {}
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ clave, id: idActual, ...datos })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        $('saldo').textContent = d.alias + ': ' + d.puntos + ' puntos';
+        $('msg').textContent = '';
+      } else {
+        $('msg').textContent = d.error;
+      }
+    }
+
+    $('leer').onclick = async () => {
+      if (!('NDEFReader' in window)) { $('msg').textContent = 'Usa Chrome en Android.'; return; }
+      try {
+        const lector = new NDEFReader();
+        await lector.scan();
+        $('msg').textContent = 'Acerca la tarjeta…';
+        lector.onreading = async (ev) => {
+          idActual = ev.serialNumber;
+          $('saldo').textContent = '';
+          try { await llamar({ accion: 'consultar' }); }
+          catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+          if ($('msg').textContent === 'Tarjeta no registrada') {
+            $('msg').textContent += ': ' + idActual;
+          }
+        };
+      } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+    };
+
+    async function mover(signo) {
+      const cantidad = Number($('cantidad').value);
+      if (!idActual) { $('msg').textContent = 'Primero lee una tarjeta.'; return; }
+      if (!cantidad || cantidad < 1) { $('msg').textContent = 'Escribe una cantidad.'; return; }
+      $('msg').textContent = 'Guardando…';
+      try {
+        await llamar({ accion: 'mover', cantidad: signo * cantidad, motivo: $('motivo').value });
+        $('cantidad').value = '';
+        $('motivo').value = '';
+      } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+    }
+    $('sumar').onclick = () => mover(1);
+    $('restar').onclick = () => mover(-1);
+  </script>
+</body>
+</html>
