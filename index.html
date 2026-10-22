@@ -9,6 +9,7 @@
     button, input { font-size: 1.1rem; padding: .7rem; margin: .3rem 0; width: 100%; box-sizing: border-box; }
     .fila { display: flex; gap: .5rem; }
     #saldo { font-size: 1.5rem; font-weight: bold; min-height: 2rem; }
+    #msg { word-break: break-all; }
   </style>
 </head>
 <body>
@@ -22,9 +23,9 @@
     <button id="restar">− Restar</button>
   </div>
   <p id="msg"></p>
-$('msg').textContent = API;
+
   <script>
-    const API = 'https://script.google.com/a/macros/g.educaand.es/s/AKfycbxt2OBJcAu7NitAuN-e68XVD70O4NWGUvLM9aM3qd3BxvpqvENZNRoSqhWf691UXi9O0w/exec';
+    const API = '';
     const $ = (id) => document.getElementById(id);
     let idActual = null;
 
@@ -78,6 +79,9 @@ $('msg').textContent = API;
     }
     $('sumar').onclick = () => mover(1);
     $('restar').onclick = () => mover(-1);
+
+    // Línea de prueba: enseña la URL que usa la página. Bórrala cuando todo funcione.
+    $('msg').textContent = 'URL: ' + API;
   </script>
 </body>
 </html>
