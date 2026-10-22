@@ -25,7 +25,7 @@
   <p id="msg"></p>
 
   <script>
-    const API = 'https://script.google.com/a/macros/g.educaand.es/s/AKfycbwasBXZ3Mtqth4FNM7yS5-OjjnwO27U_4vwyHXq3IcZG2uJO-Hhelnx8vq-dNuT538CTA/exec';
+    const API = 'https://script.google.com/macros/library/d/1JqC89KEpzyOLqJEzi2EvSgykavwSuR46dD-7RLFkDAq0EiIaw-t7-zsu/4';
     const $ = (id) => document.getElementById(id);
     let idActual = null;
 
@@ -34,11 +34,8 @@
     async function llamar(datos) {
       const clave = $('clave').value;
       try { localStorage.setItem('clave', clave); } catch (e) {}
-      const r = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ clave, id: idActual, ...datos })
-      });
+      const params = new URLSearchParams({ clave, id: idActual, ...datos });
+      const r = await fetch(API + '?' + params.toString());
       const d = await r.json();
       if (d.ok) {
         $('saldo').textContent = d.alias + ': ' + d.puntos + ' puntos';
@@ -79,9 +76,6 @@
     }
     $('sumar').onclick = () => mover(1);
     $('restar').onclick = () => mover(-1);
-
-    // Línea de prueba: enseña la URL que usa la página. Bórrala cuando todo funcione.
-    $('msg').textContent = 'URL: ' + API;
   </script>
 </body>
 </html>
