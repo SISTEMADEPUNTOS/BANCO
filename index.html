@@ -3,79 +3,244 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#16284B">
   <title>Banco de puntos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; max-width: 420px; margin: 1rem auto; padding: 0 1rem; }
-    button, input { font-size: 1.1rem; padding: .7rem; margin: .3rem 0; width: 100%; box-sizing: border-box; }
-    .fila { display: flex; gap: .5rem; }
-    #saldo { font-size: 1.5rem; font-weight: bold; min-height: 2rem; }
-    #msg { word-break: break-all; }
+    :root {
+      --niebla: #E8EDF2;
+      --tinta: #16284B;
+      --moneda: #F4B63F;
+      --suma: #17794F;
+      --resta: #C2412F;
+      --borde: #C5CFDB;
+      --blanco: #FFFFFF;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      background: var(--niebla); color: var(--tinta);
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 500;
+    }
+    main { max-width: 440px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+    h1 { font-size: 1.15rem; font-weight: 700; margin: 0 0 1rem; }
+    button, input { font: inherit; font-size: 1.05rem; }
+    :focus-visible { outline: 3px solid var(--moneda); outline-offset: 2px; }
+
+    #leer {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: .7rem;
+      padding: 1.1rem; border: 0; border-radius: 18px;
+      background: var(--tinta); color: var(--blanco); font-weight: 700; font-size: 1.15rem;
+      cursor: pointer;
+    }
+    body.escaneando #leer { animation: latido 1.6s ease-out infinite; }
+    @keyframes latido {
+      0%   { box-shadow: 0 0 0 0 rgba(244,182,63,.65); }
+      100% { box-shadow: 0 0 0 22px rgba(244,182,63,0); }
+    }
+
+    #tarjeta { margin-top: 1.5rem; text-align: center; }
+    #alumno { margin: 0 0 .9rem; font-size: 1.6rem; font-weight: 800; }
+    .moneda {
+      width: 190px; height: 190px; margin: 0 auto;
+      border-radius: 50%; background: var(--moneda);
+      border: 8px solid var(--tinta); outline: 3px solid var(--moneda); outline-offset: -14px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    #puntos { font-size: 4.2rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .moneda small { font-size: 1rem; font-weight: 700; margin-top: .2rem; }
+
+    .panel { background: var(--blanco); border-radius: 18px; padding: 1rem; margin-top: 1.5rem; }
+    .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: .6rem; }
+    .chip {
+      padding: .7rem 0; border: 2px solid var(--borde); border-radius: 12px;
+      background: var(--blanco); color: var(--tinta); font-weight: 700; cursor: pointer;
+    }
+    .chip[aria-pressed="true"] { border-color: var(--tinta); background: var(--tinta); color: var(--blanco); }
+    input[type="number"], input[type="text"], input[type="password"] {
+      width: 100%; padding: .75rem; margin-bottom: .6rem;
+      border: 2px solid var(--borde); border-radius: 12px; background: var(--blanco); color: var(--tinta);
+    }
+    .acciones { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .2rem; }
+    .acciones button {
+      padding: 1rem; border: 0; border-radius: 14px; color: var(--blanco);
+      font-weight: 800; font-size: 1.15rem; cursor: pointer;
+    }
+    #sumar { background: var(--suma); }
+    #restar { background: var(--resta); }
+    .acciones button:disabled { opacity: .55; }
+
+    #noreg { margin-top: 1.5rem; padding: 1rem; border-radius: 18px; background: var(--blanco); border-left: 8px solid var(--moneda); }
+    #noreg p { margin: 0 0 .5rem; }
+    #codigo { display: block; font-weight: 800; font-size: 1.15rem; word-break: break-all; margin-bottom: .7rem; }
+    #copiar { padding: .6rem 1rem; border: 2px solid var(--tinta); border-radius: 12px; background: transparent; color: var(--tinta); font-weight: 700; cursor: pointer; }
+
+    #msg { min-height: 1.5rem; margin: 1rem 0 0; font-weight: 700; }
+    #msg.error { color: var(--resta); }
+    #msg.ok { color: var(--suma); }
+
+    details { margin-top: 2rem; }
+    summary { cursor: pointer; font-weight: 700; padding: .4rem 0; }
+    [hidden] { display: none !important; }
+    @media (prefers-reduced-motion: reduce) { body.escaneando #leer { animation: none; } }
   </style>
 </head>
 <body>
-  <input id="clave" type="password" placeholder="Clave">
-  <button id="leer">Leer tarjeta</button>
-  <p id="saldo"></p>
-  <input id="cantidad" type="number" min="1" placeholder="Cantidad">
-  <input id="motivo" type="text" placeholder="Motivo (opcional)">
-  <div class="fila">
-    <button id="sumar">+ Sumar</button>
-    <button id="restar">− Restar</button>
-  </div>
-  <p id="msg"></p>
+<main>
+  <h1>Banco de puntos</h1>
 
-  <script>
-    const API = 'https://script.google.com/macros/s/AKfycbzltTD8OuZKS3g1Cnq6fglsh3N9cklJjf445cL5o7PYXd7ffC8yqYLssDb4m2EwdQoj4Q/exec';
-    const $ = (id) => document.getElementById(id);
-    let idActual = null;
+  <button id="leer" type="button">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6c3 3.5 3 8.5 0 12"/><path d="M12 4c4.5 5 4.5 11 0 16"/><path d="M16 2c6 6.5 6 13.5 0 20"/></svg>
+    <span id="leer-texto">Leer tarjeta</span>
+  </button>
 
-    try { $('clave').value = localStorage.getItem('clave') || ''; } catch (e) {}
+  <p id="msg" role="status" aria-live="polite"></p>
 
-    async function llamar(datos) {
-      const clave = $('clave').value;
-      try { localStorage.setItem('clave', clave); } catch (e) {}
-      const params = new URLSearchParams({ clave, id: idActual, ...datos });
-      const r = await fetch(API + '?' + params.toString());
-      const d = await r.json();
-      if (d.ok) {
-        $('saldo').textContent = d.alias + ': ' + d.puntos + ' puntos';
-        $('msg').textContent = '';
-      } else {
-        $('msg').textContent = d.error;
-      }
+  <section id="tarjeta" hidden>
+    <h2 id="alumno"></h2>
+    <div class="moneda"><span id="puntos">0</span><small>puntos</small></div>
+
+    <div class="panel">
+      <div class="chips" role="group" aria-label="Cantidades rápidas">
+        <button type="button" class="chip" data-v="1" aria-pressed="false">1</button>
+        <button type="button" class="chip" data-v="5" aria-pressed="false">5</button>
+        <button type="button" class="chip" data-v="10" aria-pressed="false">10</button>
+        <button type="button" class="chip" data-v="20" aria-pressed="false">20</button>
+      </div>
+      <input id="cantidad" type="number" min="1" inputmode="numeric" placeholder="Otra cantidad">
+      <input id="motivo" type="text" placeholder="Motivo (opcional)">
+      <div class="acciones">
+        <button id="sumar" type="button">Sumar</button>
+        <button id="restar" type="button">Restar</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="noreg" hidden>
+    <p>Esta tarjeta no está en la hoja. Copia su código en la columna A y añade el alias y los puntos.</p>
+    <span id="codigo"></span>
+    <button id="copiar" type="button">Copiar código</button>
+  </section>
+
+  <details id="ajustes">
+    <summary>Ajustes</summary>
+    <label for="clave">Clave de acceso</label>
+    <input id="clave" type="password" autocomplete="off" placeholder="Clave">
+  </details>
+</main>
+
+<script>
+  const API = 'https://script.google.com/macros/s/AKfycbzltTD8OuZKS3g1Cnq6fglsh3N9cklJjf445cL5o7PYXd7ffC8yqYLssDb4m2EwdQoj4Q/exec';
+  const $ = (id) => document.getElementById(id);
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let idActual = null, saldoActual = 0, escaneando = false;
+
+  try { $('clave').value = localStorage.getItem('clave') || ''; } catch (e) {}
+  if (!$('clave').value) $('ajustes').open = true;
+
+  function aviso(texto, tipo) { const m = $('msg'); m.textContent = texto; m.className = tipo || ''; }
+
+  function contar(hasta) {
+    const el = $('puntos'), desde = saldoActual;
+    saldoActual = hasta;
+    if (reducido || desde === hasta) { el.textContent = hasta; return; }
+    const t0 = performance.now(), dur = 500;
+    (function paso(t) {
+      const k = Math.min(1, (t - t0) / dur);
+      el.textContent = Math.round(desde + (hasta - desde) * k);
+      if (k < 1) requestAnimationFrame(paso);
+    })(t0);
+  }
+
+  async function llamar(datos) {
+    const clave = $('clave').value;
+    try { localStorage.setItem('clave', clave); } catch (e) {}
+    const params = new URLSearchParams({ clave, id: idActual, ...datos });
+    const r = await fetch(API + '?' + params.toString());
+    return r.json();
+  }
+
+  function errorApi(texto) {
+    if (/clave/i.test(texto)) {
+      $('ajustes').open = true;
+      aviso('La clave no es correcta. Revísala en Ajustes.', 'error');
+    } else { aviso(texto, 'error'); }
+  }
+
+  $('leer').onclick = async () => {
+    if (!('NDEFReader' in window)) {
+      aviso('Este navegador no lee NFC. Abre la página en Chrome para Android.', 'error'); return;
     }
+    if (escaneando) return;
+    try {
+      const lector = new NDEFReader();
+      await lector.scan();
+      escaneando = true;
+      document.body.classList.add('escaneando');
+      $('leer-texto').textContent = 'Acerca la tarjeta al móvil';
+      aviso('');
+      lector.onreadingerror = () => aviso('No se pudo leer esta tarjeta. Acércala de nuevo.', 'error');
+      lector.onreading = async (ev) => {
+        idActual = ev.serialNumber;
+        if (navigator.vibrate) navigator.vibrate(40);
+        $('tarjeta').hidden = true; $('noreg').hidden = true;
+        aviso('Leyendo…');
+        try {
+          const d = await llamar({ accion: 'consultar' });
+          if (d.ok) {
+            $('alumno').textContent = d.alias;
+            saldoActual = 0; contar(Number(d.puntos));
+            $('tarjeta').hidden = false; aviso('');
+          } else if (d.error === 'Tarjeta no registrada') {
+            $('codigo').textContent = idActual; $('noreg').hidden = false; aviso('');
+          } else { errorApi(d.error); }
+        } catch (e) {
+          aviso('No se pudo conectar con la hoja. Revisa la conexión y la dirección del script.', 'error');
+        }
+      };
+    } catch (e) {
+      aviso('No se pudo activar el NFC. Comprueba que está encendido y que Chrome tiene permiso.', 'error');
+    }
+  };
 
-    $('leer').onclick = async () => {
-      if (!('NDEFReader' in window)) { $('msg').textContent = 'Usa Chrome en Android.'; return; }
-      try {
-        const lector = new NDEFReader();
-        await lector.scan();
-        $('msg').textContent = 'Acerca la tarjeta…';
-        lector.onreading = async (ev) => {
-          idActual = ev.serialNumber;
-          $('saldo').textContent = '';
-          try { await llamar({ accion: 'consultar' }); }
-          catch (e) { $('msg').textContent = 'Error: ' + e.message; }
-          if ($('msg').textContent === 'Tarjeta no registrada') {
-            $('msg').textContent += ': ' + idActual;
-          }
-        };
-      } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+  document.querySelectorAll('.chip').forEach((c) => {
+    c.onclick = () => {
+      document.querySelectorAll('.chip').forEach((o) => o.setAttribute('aria-pressed', 'false'));
+      c.setAttribute('aria-pressed', 'true');
+      $('cantidad').value = c.dataset.v;
     };
+  });
+  $('cantidad').oninput = () => document.querySelectorAll('.chip').forEach((o) => o.setAttribute('aria-pressed', 'false'));
 
-    async function mover(signo) {
-      const cantidad = Number($('cantidad').value);
-      if (!idActual) { $('msg').textContent = 'Primero lee una tarjeta.'; return; }
-      if (!cantidad || cantidad < 1) { $('msg').textContent = 'Escribe una cantidad.'; return; }
-      $('msg').textContent = 'Guardando…';
-      try {
-        await llamar({ accion: 'mover', cantidad: signo * cantidad, motivo: $('motivo').value });
-        $('cantidad').value = '';
-        $('motivo').value = '';
-      } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+  async function mover(signo) {
+    const cantidad = Number($('cantidad').value);
+    if (!idActual) { aviso('Primero lee una tarjeta.', 'error'); return; }
+    if (!cantidad || cantidad < 1) { aviso('Elige o escribe una cantidad.', 'error'); return; }
+    $('sumar').disabled = $('restar').disabled = true;
+    aviso('Guardando…');
+    try {
+      const d = await llamar({ accion: 'mover', cantidad: signo * cantidad, motivo: $('motivo').value });
+      if (d.ok) {
+        contar(Number(d.puntos));
+        aviso((signo > 0 ? 'Sumados ' : 'Restados ') + cantidad + ' puntos.', 'ok');
+        $('cantidad').value = ''; $('motivo').value = '';
+        document.querySelectorAll('.chip').forEach((o) => o.setAttribute('aria-pressed', 'false'));
+      } else { errorApi(d.error); }
+    } catch (e) {
+      aviso('No se pudo guardar. Revisa la conexión e inténtalo de nuevo.', 'error');
     }
-    $('sumar').onclick = () => mover(1);
-    $('restar').onclick = () => mover(-1);
-  </script>
+    $('sumar').disabled = $('restar').disabled = false;
+  }
+  $('sumar').onclick = () => mover(1);
+  $('restar').onclick = () => mover(-1);
+
+  $('copiar').onclick = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(idActual).then(() => aviso('Código copiado.', 'ok')).catch(() => {});
+    }
+  };
+</script>
 </body>
 </html>
